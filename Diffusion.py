@@ -3,9 +3,9 @@
 
 # <codecell>
 
-#import urllib
+import urllib
 import re
-#from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup
 import csv
 import string
 import operator
@@ -28,18 +28,58 @@ print len(stopWords)
 
 puncToStrip = [".",",","?","\"",":",";","'s"]
 def cleanWebInput(text):
+    text = text.strip()
     text = text.replace("<summary>","")
     text = text.replace("</summary>","")
+    text = text.replace("<abstract>","")
+    text = text.replace("<bibno>","")
+    text = text.replace("<page_from>","")
+    text = text.replace("<page_to>","")
+    text = text.replace("<jrnl_code>","")
+    text = text.replace("<volume>","")
+    text = text.replace("<issue>","")
+    text = text.replace("<italic>","")
+    text = text.replace("</italic>","")
+    text = text.replace("<a>","")
+    text = text.replace("</a>","")
+    text = text.replace("<ul>","")
+    text = text.replace("</ul>","")
+    text = text.replace("<i>","")
+    text = text.replace("</i>","")
+    text = text.replace("<b>","")
+    text = text.replace("</b>","")
+    text = text.replace("<br>","")
+    text = text.replace("</br>","")
+    text = text.replace("<br />","")
+    text = re.sub('\<h\w+\>','',text)
+    text = re.sub('\</h\w+\>','',text)
+    text = text.replace("<inline-equation>","")
+    text = text.replace("</inline-equation>","")
+    text = text.replace("<sup>","supscrpt")
+    text = text.replace("</sup>","supscrpt")
+    text = text.replace("<sub>","subscrpt")
+    text = text.replace("</sub>","subscrpt")
+    text = text.replace("<item>","")
+    text = text.replace("</item>","")
+    text = text.replace("<list>","")
+    text = text.replace("</list>","")
+    text = text.replace("<li>","")
+    text = text.replace("</li>","")
     text = text.replace("<p>","")
     text = text.replace("</p>","")
     text = text.replace("\n"," ")
-    text = text.replace("     ","")
-    text = text.replace("<p>","")
-    text = text.replace("</p>","")
     text = text.replace("<div class=\"pubabstract\">","")
     text = text.replace("</div>","")
     text = text.replace("<author> <name>","")
     text = text.replace("</name> </author>","")
+    text = text.replace("<subscrpt>", "subscrpt")
+    text = text.replace("</subscrpt>", "subscrpt")
+    text = text.replace("<supscrpt>", "supscrpt")
+    text = text.replace("</supscrpt>", "supscrpt")
+    text = re.sub('\<\w+\>','',text)
+    text = re.sub('\</\w+\>','',text)
+    text = re.sub('\&\#\d+\;','',text)
+    text = re.sub('\&\w+\;','',text)
     return text
 
 def scrub(text):
@@ -150,14 +190,14 @@ def mclcsn(s1, s2):
     result = s1[x_longest - longest: x_longest]
     return round( (len(result))**2 / (float(len(s1))*float(len(s2))) ,3)
 
-# <codecell>
-
 def similarity(x,y):
     # Clean input strings
+    x = cleanWebInput(x)
     x = scrub(x)
     x = x.split()
     x = stopWordScrub(x)
     x = lemma(x)
+    y = cleanWebInput(y)
     y = scrub(y)
     y = y.split()
     y = stopWordScrub(y)
@@ -218,6 +258,91 @@ def similarity(x,y):
                 rho.append(sMax)
         similarity = ((delta + sum(rho))*(m+n))/(2*m*n)
     return similarity
+
+# <codecell>
+
+# Scraping citation counts from the first page of a google scholar search
+
+#papers = ['Learning and Inferring Transportation Routines', 'Text Classification from Labeled and Unlabeled Documents using EM', 'FastSLAM: A Factored Solution to the Simultaneous Localization and Mapping Problem', 'Random Forests', 'Unsupervised Learning by Probabilistic Latent Semantic Analysis', 'Gene Selection for Cancer Classification using Support Vector Machines', 'Choosing Multiple Parameters for Support Vector Machines', 'Matching words and pictures']
+papers = ['Learning and Inferring Transportation Routines', 'Text Classification from Labeled and Unlabeled Documents using EM']
+citDF = pd.DataFrame(columns=['in_title','title','jref','cited_by'])
+for pap in papers: 
+    urlPap = pap.replace(' ','+').lower()
+    url1 = 'http://scholar.google.com/scholar?q='
+    url2 = '&btnG=&hl=en&as_sdt=0%2C47'
+    url = url1+urlPap+url2
+    print url
+    page = urllib2.Request(url,None,{"User-Agent":"Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11"})
+    resp = urllib2.urlopen(page)
+    html = resp.read()
+    soup = BeautifulSoup(html)
+    
+    results = soup.findAll('div', {'class':'gs_r'})
+    in_title = pap
+    for res in results:
+        title = res.h3.get_text()
+        jrefPar = res.findAll('div',{'class':'gs_a'})
+        jref = jrefPar[0].get_text()
+        citPar1 = res.findAll('div',{'class':'gs_ri'})
+        citPar2 = citPar1[0].findAll('div',{'class':'gs_fl'})
+        if re.search('\d+',citPar2[0].a.get_text()):
+            cited_by = re.search('\d+',citPar2[0].a.get_text()).group()
+        else:
+            cited_by = 'None'
+        row = pd.Series([in_title, title, jref, cited_by],index=['in_title','title','jref','cited_by'])
+        citDF = citDF.append(row, ignore_index=True)
+    time.sleep(10)
+
+# <codecell>
+
+
+
+url1 = 'http://scholar.google.com/scholar?q='
+url2 = '&btnG=&hl=en&as_sdt=0%2C47'
+page = urllib2.Request(url,None,{"User-Agent":"Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11"})
+resp = urllib2.urlopen(page)
+html = resp.read()
+soup = BeautifulSoup(html)
+
+# <codecell>
+
+print citDF
+
+# <codecell>
+
+results = soup.findAll('div', {'class':'gs_r'})
+print results[0].h3.get_text()
+jref = results[0].findAll('div',{'class':'gs_a'})
+print '\n'
+print jref[0].get_text()
+print '\n'
+citpar = results[0].findAll('div',{'class':'gs_ri'})
+#print cit[0]
+cit = citpar[0].findAll('div',{'class':'gs_fl'})
+print cit[0].a.get_text()
+print re.search('\d+',cit[0].a.get_text()).group()
+
+# <codecell>
+
+citDF = pd.DataFrame(columns=['in_title','title','jref','cited_by'])
+results = soup.findAll('div', {'class':'gs_r'})
+in_title = 'Matching words and pictures'
+for res in results:
+    title = res.h3.get_text()
+    jrefPar = res.findAll('div',{'class':'gs_a'})
+    jref = jrefPar[0].get_text()
+    citPar1 = res.findAll('div',{'class':'gs_ri'})
+    citPar2 = citPar1[0].findAll('div',{'class':'gs_fl'})
+    if re.search('\d+',citPar2[0].a.get_text()):
+        cited_by = re.search('\d+',citPar2[0].a.get_text()).group()
+    else:
+        cited_by = 'None'
+    row = pd.Series([in_title, title, jref, cited_by],index=['in_title','title','jref','cited_by'])
+    citDF = citDF.append(row, ignore_index=True)
+
+# <codecell>
+
+print citDF
 
 # <codecell>
 
