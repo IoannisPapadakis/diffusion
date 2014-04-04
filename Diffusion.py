@@ -4,6 +4,7 @@
 # <codecell>
 
 import urllib
+import urllib2
 import re
 from bs4 import BeautifulSoup
 import csv
@@ -15,6 +16,9 @@ import time
 import pandas as pd
 from unicodedata import normalize
 import matplotlib.pyplot as plt
+import math
+from collections import Counter
+import random
 
 # <codecell>
 
@@ -190,7 +194,7 @@ def mclcsn(s1, s2):
     result = s1[x_longest - longest: x_longest]
     return round( (len(result))**2 / (float(len(s1))*float(len(s2))) ,3)
 
-def similarity(x,y):
+def simLCS(x,y):
     # Clean input strings
     x = cleanWebInput(x)
     x = scrub(x)
@@ -259,39 +263,76 @@ def similarity(x,y):
         similarity = ((delta + sum(rho))*(m+n))/(2*m*n)
     return similarity
 
+def simCosine(str1,str2):
+    str1 = cleanWebInput(str1)
+    str1 = scrub(str1)
+    str1 = str1.split()
+    str1 = stopWordScrub(str1)
+    vec1 = Counter(str1)
+
+    str2 = cleanWebInput(str2)
+    str2 = scrub(str2)
+    str2 = str2.split()
+    str2 = stopWordScrub(str2)
+    vec2 = Counter(str2)
+
+    intersection = set(vec1.keys()) & set(vec2.keys())
+    numerator = sum([vec1[x] * vec2[x] for x in intersection])
+
+    sum1 = sum([vec1[x]**2 for x in vec1.keys()])
+    sum2 = sum([vec2[x]**2 for x in vec2.keys()])
+    denominator = math.sqrt(sum1) * math.sqrt(sum2)
+
+    if not denominator:
+        return 0.0
+    else:
+        return float(numerator) / denominator
+
 # <codecell>
 
 # Scraping citation counts from the first page of a google scholar search
-
-#papers = ['Learning and Inferring Transportation Routines', 'Text Classification from Labeled and Unlabeled Documents using EM', 'FastSLAM: A Factored Solution to the Simultaneous Localization and Mapping Problem', 'Random Forests', 'Unsupervised Learning by Probabilistic Latent Semantic Analysis', 'Gene Selection for Cancer Classification using Support Vector Machines', 'Choosing Multiple Parameters for Support Vector Machines', 'Matching words and pictures']
-papers = ['Learning and Inferring Transportation Routines', 'Text Classification from Labeled and Unlabeled Documents using EM']
-citDF = pd.DataFrame(columns=['in_title','title','jref','cited_by'])
-for pap in papers: 
-    urlPap = pap.replace(' ','+').lower()
-    url1 = 'http://scholar.google.com/scholar?q='
-    url2 = '&btnG=&hl=en&as_sdt=0%2C47'
-    url = url1+urlPap+url2
-    print url
-    page = urllib2.Request(url,None,{"User-Agent":"Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11"})
-    resp = urllib2.urlopen(page)
-    html = resp.read()
-    soup = BeautifulSoup(html)
-    
-    results = soup.findAll('div', {'class':'gs_r'})
-    in_title = pap
-    for res in results:
-        title = res.h3.get_text()
-        jrefPar = res.findAll('div',{'class':'gs_a'})
-        jref = jrefPar[0].get_text()
-        citPar1 = res.findAll('div',{'class':'gs_ri'})
-        citPar2 = citPar1[0].findAll('div',{'class':'gs_fl'})
-        if re.search('\d+',citPar2[0].a.get_text()):
-            cited_by = re.search('\d+',citPar2[0].a.get_text()).group()
-        else:
-            cited_by = 'None'
-        row = pd.Series([in_title, title, jref, cited_by],index=['in_title','title','jref','cited_by'])
-        citDF = citDF.append(row, ignore_index=True)
-    time.sleep(10)
+def scrapeGoogleCitations(papers):
+    citDF = pd.DataFrame(columns=['in_title','title','jref','cited_by'])
+    for pap in papers: 
+        urlPap = pap.replace(' ','+').lower()
+        url1 = 'http://scholar.google.com/scholar?q='
+        url2 = '&btnG=&hl=en&as_sdt=0%2C47'
+        url = url1+urlPap+url2
+        print url
+        try:
+            page = urllib2.Request(url,None,{"User-Agent":"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1623.0 Safari/537.36"})
+            resp = urllib2.urlopen(page)
+            html = resp.read()
+            soup = BeautifulSoup(html)
+            
+            results = soup.findAll('div', {'class':'gs_r'})
+            in_title = pap
+            
+            for res in results[0:5]:
+                title = res.h3.get_text()
+                jrefPar = res.findAll('div',{'class':'gs_a'})
+                jref = jrefPar[0].get_text()
+                citPar1 = res.findAll('div',{'class':'gs_ri'})
+                citPar2 = citPar1[0].findAll('div',{'class':'gs_fl'})
+                if re.search('\d+',citPar2[0].a.get_text()):
+                    cited_by = re.search('\d+',citPar2[0].a.get_text()).group()
+                else:
+                    cited_by = 'None'
+                row = pd.Series([in_title, title, jref, cited_by],index=['in_title','title','jref','cited_by'])
+                citDF = citDF.append(row, ignore_index=True)
+            
+            # Randomize wait 
+            baseWait = 300
+            dice = random.random()
+            while dice*baseWait<10:
+                dice = random.random()
+            print dice*baseWait
+            time.sleep(dice*baseWait)
+        except:
+            print "SCROOGLED"
+            citDF.to_csv('paperCitations.csv')
+            break
+    return citDF
 
 # <codecell>
 
@@ -598,6 +639,62 @@ def scrapeARXIV(maxRes,upperLimit,category, scrapeAll):
         time.sleep(3)
     return df
 
+# <codecell>
+
+def runSim(objDF,smpDF,simDFCols,objVars,smpVars,method):
+    """
+    Runs similarity regressions and returns a dataframe with the similarity, calculated using either the 
+    longest common subsequence methods or the cosine similarity, of each abstract in the objDF dataframe 
+    to each abstract in the smpDF dataframe
+    Parameters:
+    objDF = dataframe of focus abstracts
+    smpDF = dataframe of abstracts against which similarity will be calculated
+    simDFCols = list of column names to be used in the similarity dataframe returned
+    objVars = list of column names on the objDF dataframe to be returned on the similarity dataframe
+    smpVars = list of column names on the smpDF dataframe to be returend on the similarity dataframe
+    method = method for calculating similarity, lcs or cosine
+    """
+    simDF = pd.DataFrame(columns=simDFCols)
+    
+    for obj_ind,obj_row in objDF.iterrows():
+        if obj_ind%10==0:
+            print obj_ind
+        objAbs = obj_row['Abstract']
+        # Build dictionary of objVars with values from the objDF
+        objVarDict = {}
+        for i in range(len(objVars)):
+            objVarDict[i] = obj_row[objVars[i]]
+        
+        for smp_ind,smp_row in smpDF.iterrows():
+            if method == 'lcs':
+                if smp_ind%500 == 0:
+                    print smp_ind
+            smpAbs = smp_row['Abstract']
+            # Build dictionary of smpVars with values from the smpDF
+            smpVarDict = {}
+            for i in range(len(smpVars)):
+                smpVarDict[i] = smp_row[smpVars[i]]
+            
+            if method=='lcs':
+                sim = simLCS(objAbs,smpAbs)
+            elif method =='cosine':
+                sim = simCosine(objAbs,smpAbs)
+            else:
+                print "No method"
+                break
+            # Build a list of variable values to be appended to the simDF, pulled from both dictionaries
+            rowVars = []
+            for varKey in range(len(objVars)):
+                rowVars.append(objVarDict[varKey])            
+            for varKey in range(len(smpVars)):
+                rowVars.append(smpVarDict[varKey])
+            rowVars.append(sim)
+            # Write the new record to the simDF
+            row = pd.Series(rowVars,index=simDFCols)
+            simDF = simDF.append(row,ignore_index=True)
+    
+    return simDF
+
 # <headingcell level=1>
 
 # Scrape Biotech, AI, and Machine Learning Abstracts
@@ -849,6 +946,7 @@ def addPats2csv(df, yr,first,name):
 # <codecell>
 
 """
+# Code used to find top bio patents
 #bioICL = pd.DataFrame(['A01H  100','A01H  400','A61K 3800','A61K 3900','A61K 4800','C02F  334','C07G 1100','C07G 1300','C07G 1500','C07K  400','C07K 1400','C07K 1600','C07K 1700','C07K 1900','G01N 27327','G01N 3353','G01N 33531','G01N 33532','G01N 33533','G01N 33534','G01N 33535','G01N 33536','G01N 33537','G01N 33538','G01N 33539','G01N 3354','G01N 33541','G01N 33542','G01N 33543','G01N 33544','G01N 33545','G01N 33546','G01N 33547','G01N 33548','G01N 33549','G01N 3355','G01N 33551','G01N 33552','G01N 33553','G01N 33554','G01N 33555','G01N 33556','G01N 33557','G01N 33558','G01N 33559','G01N 3357','G01N 33571','G01N 33572','G01N 33573','G01N 33574','G01N 33575','G01N 33576','G01N 33577','G01N 33578','G01N 33579','G01N 3368','G01N 3374','G01N 3376','G01N 3378','G01N 3388','G01N 3392'], columns=['icl'])
 #bioICLclass = pd.DataFrame(['C12M','C12N','C12P','C12Q','C12S'],columns=['icl_class'])
 #bioPats1 = pdf3.merge(bioICL,on=['icl'])
@@ -910,6 +1008,7 @@ addPats2csv(pf,1996,False,'bio')
 # <codecell>
 
 """
+# Code used to find top bio patents
 # find top x% of cited patents in a year
 A = pdf3[(pdf3.gyear==1999)&(pdf3.nclass==706)]
 print A.ncited.describe()
@@ -963,44 +1062,23 @@ addPats2csv(pf,1996,False,'ai')
 
 # <codecell>
 
-# Analysis and similarity matrix
+# Calculate similarity biotech Patent to biotech Academic Abstract
+t0 = time.clock()
 bioPats = pd.DataFrame.from_csv('bio_patents.csv')
 bioAbs = pd.DataFrame.from_csv('bio_abstracts.csv')
-sim = pd.DataFrame(columns=['PatNum', 'PatYear', 'PatInventors','PapTitle','PapAuthors','PapJRef','PapYear','Similarity'])
-#sim = pd.DataFrame.from_csv('bio_similarity.csv')
 
-# <codecell>
+simDFCols = ['PatNum','PatYear','PatInventors','PapTitle','PapAuthors','PapJRef','PapYear','Similarity']
+objVars = ['PatentNum','PatYear','Inventors']
+smpVars = ['Title','Authors','JRef','Year']
 
-# Analysis and similarity matrix
-findYear = re.compile('\(\d\d\d\d\)')
-bioPats = bioPats
-t0 = time.clock()
-
-for pat_ind, pat in bioPats.iterrows():
-    patNum = pat['PatentNum']
-    patYear = pat['PatYear']
-    patInv = pat['Inventors']
-    patAbs = pat['Abstract']
-    print "PatNum", patNum
-
-    for row_index,row in bioAbs.iterrows():
-        if row_index%100 == 0:
-            print row_index
-        papTitle = row['Title']
-        papAuthors = row['Authors']
-        papJRef = row['JRef']
-        find = re.search(findYear, papJRef)
-        papYear = int(find.group()[1:5])
-        papAbs = row['Abstract']
-    
-        sml = similarity(patAbs,papAbs)
-        
-        row = pd.Series([patNum,patYear,patInv,papTitle,papAuthors,papJRef,papYear,sml],index=['PatNum','PatYear','PatInventors','PapTitle','PapAuthors','PapJRef','PapYear','Similarity'])
-        sim = sim.append(row, ignore_index=True)
-    
+bioSim = runSim(bioPats,bioAbs,simDFCols,objVars,smpVars,'cosine')
+bioSim.to_csv('bio_simCosine.csv')
 t = time.clock() - t0
-print "Minutes Lapsed:", (t/60)
-sim.to_csv('bio_similarity.csv')
+print "Minutes Lapsed for cosine:", (t/60)
+#bioSim = runSim(bioPats,bioAbs,simDFCols,objVars,smpVars,'lcs')
+#bioSim.to_csv('bio_simLCS.csv')
+#t = time.clock() - t0
+#print "Minutes Lapsed for lcs:", (t/60)
 
 # <headingcell level=1>
 
@@ -1008,46 +1086,23 @@ sim.to_csv('bio_similarity.csv')
 
 # <codecell>
 
-aimlAbs = pd.DataFrame.from_csv('aiml_abstracts.csv')
-aiPats = pd.DataFrame.from_csv('ai_patents.csv')
-aiSim = pd.DataFrame(columns=['PatNum', 'PatYear', 'PatInventors','PapTitle','PapAuthors','PapJRef','PapID','PapYear','Similarity'])
-#aiSim = pd.DataFrame.from_csv('ai_similarity.csv')
-
-# <codecell>
-
-# Analysis and similarity matrix
-aiPats = aiPats[1:27]
+# Calculate similarity ai Patent to ai Academic Abstract
 t0 = time.clock()
+aiPats = pd.DataFrame.from_csv('ai_patents.csv')
+aimlAbs = pd.DataFrame.from_csv('aiml_abstracts.csv')
 
-for pat_ind, pat in aiPats.iterrows():
-    patNum = pat['PatentNum']
-    patYear = pat['PatYear']
-    patInv = pat['Inventors']
-    patAbs = pat['Abstract']
-    print "PatNum", patNum
+simDFCols = ['PatNum','PatYear','PatInventors','PapTitle','PapAuthors','PapJRef','PapID','PapYear','Similarity']
+objVars = ['PatentNum','PatYear','Inventors']
+smpVars = ['Title','Authors','JRef','arxivID','Year']
 
-    for row_index,row in aimlAbs.iterrows():
-        if row_index%500 == 0:
-            print row_index
-        papTitle = row['Title']
-        papAuthors = row['Authors']
-        papJRef = row['JRef']
-        papID = row['arxivID']
-        papYear = row['Year']
-        papAbs = row['Abstract']
-    
-        sim = similarity(patAbs,papAbs)
-        
-        row = pd.Series([patNum,patYear,patInv,papTitle,papAuthors,papJRef,papID,papYear,sim],index=['PatNum','PatYear','PatInventors','PapTitle','PapAuthors','PapJRef','PapID','PapYear','Similarity'])
-        aiSim = aiSim.append(row, ignore_index=True)
-    
+aiSim = runSim(aiPats,aimlAbs,simDFCols,objVars,smpVars,'cosine')
+aiSim.to_csv('ai_simCosine.csv')
 t = time.clock() - t0
-print "Minutes Lapsed:", (t/60)
-aiSim.to_csv('ai_similarity1.csv')
-
-# <codecell>
-
-print aimlAbs.Abstract
+print "Minutes Lapsed for cosine:", (t/60)
+#aiSim = runSim(aiPats,aimlAbs,simDFCols,objVars,smpVars,'lcs')
+#aiSim.to_csv('ai_simLCS.csv')
+#t = time.clock() - t0
+#print "Minutes Lapsed for lcs:", (t/60)
 
 # <headingcell level=1>
 
@@ -1055,44 +1110,53 @@ print aimlAbs.Abstract
 
 # <codecell>
 
-aimlAbs = pd.DataFrame.from_csv('aiml_abstracts.csv')
-aiPapers = pd.DataFrame.from_csv('top_ai_papers.csv')
-aiPaperSim = pd.DataFrame(columns=['TopPaperTitle', 'TopPaperAuthors', 'TopPaperYear','PapTitle','PapAuthors','PapJRef','PapYear','Similarity'])
-
-# <codecell>
-
-# Analysis and similarity matrix for papers
+# Calculate similarity of top ai papers to ai academic abstrats
 t0 = time.clock()
+aiPapers = pd.DataFrame.from_csv('top_ai_papers.csv')
+aimlAbs = pd.DataFrame.from_csv('aiml_abstracts.csv')
 
-for toppap_ind,toppap in aiPapers.iterrows():
-    toppapAbs = toppap['Abstract']
-    toppapTitle = toppap['Title']
-    toppapAuthors = toppap['Authors']
-    toppapYear = toppap['Year']
-    print "Paper", toppapTitle
-    
-    for row_index,row in aimlAbs.iterrows():
-        if row_index%500 == 0:
-            print row_index
-        papTitle = row['Title']
-        papAuthors = row['Authors']
-        papJRef = row['JRef']
-        papYear = row['PapYear']
-        papAbs = row['Abstract']
-        
-        sim = similarity(toppapAbs,papAbs)
-        
-        row = pd.Series([toppapTitle,toppapAuthors,toppapYear,papTitle,papAuthors,papJRef,papYear,sim],index=['TopPaperTitle', 'TopPaperAuthors', 'TopPaperYear','PapTitle','PapAuthors','PapJRef','PapYear','Similarity'])
-        aiPaperSim = aiPaperSim.append(row,ignore_index=True)
-        
-    
+simDFCols = ['TopPaperTitle', 'TopPaperAuthors', 'TopPaperYear','PapTitle','PapAuthors','PapJRef','PapJRefYear','PapSubmitYear','Similarity']
+objVars = ['Title', 'Authors','Year']
+smpVars = ['Title', 'Authors','JRef', 'JRefYear','SubmitYear']
+
+papSim = runSim(aiPapers,aimlAbs,simDFCols,objVars,smpVars,'cosine')
+papSim.to_csv('paper_simCosine.csv')
 t = time.clock() - t0
-print "Minutes Lapsed:", (t/60)
-aiPaperSim.to_csv('paper_similarity2.csv')
+print "Minutes Lapsed for cosine:", (t/60)
+#papSim = runSim(aiPapers,aimlAbs,simDFCols,objVars,smpVars,'lcs')
+#papSim.to_csv('paper_simLCS.csv')
+#t = time.clock() - t0
+#print "Minutes Lapsed for lcs:", (t/60)
+
+# <headingcell level=1>
+
+# Scrape Google Citation Counts
 
 # <codecell>
 
-##########
+aimlAbs = pd.DataFrame.from_csv('aiml_abstracts.csv')
+aimlAbs = aimlAbs[aimlAbs.JRefYear==2001]
+print aimlAbs
+papers = list(aimlAbs.Title)
+#print papers
+papers = map(lambda x: cleanWebInput(x), papers) 
+papers = map(lambda x: scrub(x),papers)
+papers = map(lambda x: x.replace('\r',''),papers)
+papers = map(lambda x: x.replace('\n',''),papers)
+print papers
+
+# <codecell>
+
+citeDF = scrapeGoogleCitations(papers)
+citeDF.to_csv('paperCitations.csv')
+
+# <codecell>
+
+import ipaddress
+
+# <headingcell level=1>
+
+# Junk?
 
 # <codecell>
 
@@ -1187,4 +1251,8 @@ for row_index,row in ACMAbs.iterrows():
 t = time.clock() - t0
 print "Minutes Lapsed:", (t/60)
 #sm.to_csv('.csv')
+
+# <codecell>
+
+#######
 

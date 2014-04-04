@@ -100,6 +100,17 @@ aimlAbs.to_csv('aiml_abstracts.csv')
 # <codecell>
 
 bioAbs = pd.DataFrame.from_csv('bio_abstracts.csv')
+findYear = re.compile('\(\d\d\d\d\)')
+bioAbs['Year'] = int()
+for row_index, row in bioAbs.iterrows():
+    papJRef = row['JRef']
+    find = re.search(findYear, papJRef)
+    bioAbs.Year[row_index] = int(find.group()[1:5])
+bioAbs.to_csv('bio_abstracts2.csv')
+
+# <codecell>
+
+bioAbs = pd.DataFrame.from_csv('bio_abstracts.csv')
 aimlAbs = pd.DataFrame.from_csv('aiml_abstracts.csv')
 
 aimlAbs['AbsLen'] = int()
@@ -175,8 +186,9 @@ print bioPats2.ncited.describe()
 
 # <codecell>
 
-cat = 'ai'
-simDF = pd.DataFrame.from_csv('{0}_similarity.csv'.format(cat))
+cat = 'bio'
+#simDF = pd.DataFrame.from_csv('{0}_similarity.csv'.format(cat))
+simDF = pd.DataFrame.from_csv('bio_simCosine.csv')
 simDFPats = list(set(simDF.PatNum))
 years = list(set(simDF.PapYear))
 patYears = range(min(simDF.PatYear),max(simDF.PatYear)+1)
@@ -1044,7 +1056,8 @@ plt.show()
 
 # <codecell>
 
-papSim = pd.DataFrame.from_csv('paper_similarity.csv')
+#papSim = pd.DataFrame.from_csv('paper_similarity.csv')
+papSim = pd.DataFrame.from_csv('paper_simCosine.csv')
 print papSim
 papers = list(set(papSim.TopPaperTitle))
 
@@ -1053,49 +1066,49 @@ papers = list(set(papSim.TopPaperTitle))
 # Create dummy variables on paper similarity dataframe with >=
 papSim['D_GT1994'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 1994:
+    if row['PapJRefYear'] >= 1994:
         papSim.D_GT1994[row_index] = 1
     else:
         papSim.D_GT1994[row_index] = 0
 
 papSim['D_GT1995'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 1995:
+    if row['PapJRefYear'] >= 1995:
         papSim.D_GT1995[row_index] = 1
     else:
         papSim.D_GT1995[row_index] = 0
 
 papSim['D_GT1996'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 1996:
+    if row['PapJRefYear'] >= 1996:
         papSim.D_GT1996[row_index] = 1
     else:
         papSim.D_GT1996[row_index] = 0
 
 papSim['D_GT1997'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 1997:
+    if row['PapJRefYear'] >= 1997:
         papSim.D_GT1997[row_index] = 1
     else:
         papSim.D_GT1997[row_index] = 0
 
 papSim['D_GT1998'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 1998:
+    if row['PapJRefYear'] >= 1998:
         papSim.D_GT1998[row_index] = 1
     else:
         papSim.D_GT1998[row_index] = 0
 
 papSim['D_GT1999'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 1999:
+    if row['PapJRefYear'] >= 1999:
         papSim.D_GT1999[row_index] = 1
     else:
         papSim.D_GT1999[row_index] = 0
 
 papSim['D_GT2000'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2000:
+    if row['PapJRefYear'] >= 2000:
         papSim.D_GT2000[row_index] = 1
     else:
         papSim.D_GT2000[row_index] = 0
@@ -1103,105 +1116,105 @@ for row_index, row in papSim.iterrows():
         
 papSim['D_GT2001'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2001:
+    if row['PapJRefYear'] >= 2001:
         papSim.D_GT2001[row_index] = 1
     else:
         papSim.D_GT2001[row_index] = 0
 
 papSim['D_GT2002'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2002:
+    if row['PapJRefYear'] >= 2002:
         papSim.D_GT2002[row_index] = 1
     else:
         papSim.D_GT2002[row_index] = 0
 
 papSim['D_GT2003'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2003:
+    if row['PapJRefYear'] >= 2003:
         papSim.D_GT2003[row_index] = 1
     else:
         papSim.D_GT2003[row_index] = 0
 
 papSim['D_GT2004'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2004:
+    if row['PapJRefYear'] >= 2004:
         papSim.D_GT2004[row_index] = 1
     else:
         papSim.D_GT2004[row_index] = 0
 
 papSim['D_GT2005'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2005:
+    if row['PapJRefYear'] >= 2005:
         papSim.D_GT2005[row_index] = 1
     else:
         papSim.D_GT2005[row_index] = 0
 
 papSim['D_GT2006'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2006:
+    if row['PapJRefYear'] >= 2006:
         papSim.D_GT2006[row_index] = 1
     else:
         papSim.D_GT2006[row_index] = 0
 
 papSim['D_GT2007'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2007:
+    if row['PapJRefYear'] >= 2007:
         papSim.D_GT2007[row_index] = 1
     else:
         papSim.D_GT2007[row_index] = 0
 
 papSim['D_GT2008'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2008:
+    if row['PapJRefYear'] >= 2008:
         papSim.D_GT2008[row_index] = 1
     else:
         papSim.D_GT2008[row_index] = 0
 
 papSim['D_GT2009'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2009:
+    if row['PapJRefYear'] >= 2009:
         papSim.D_GT2009[row_index] = 1
     else:
         papSim.D_GT2009[row_index] = 0
         
 papSim['D_GT2010'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2010:
+    if row['PapJRefYear'] >= 2010:
         papSim.D_GT2010[row_index] = 1
     else:
         papSim.D_GT2010[row_index] = 0
         
 papSim['D_GT2011'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2011:
+    if row['PapJRefYear'] >= 2011:
         papSim.D_GT2011[row_index] = 1
     else:
         papSim.D_GT2011[row_index] = 0
         
 papSim['D_GT2012'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2012:
+    if row['PapJRefYear'] >= 2012:
         papSim.D_GT2012[row_index] = 1
     else:
         papSim.D_GT2012[row_index] = 0
 
 papSim['D_GT2013'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2013:
+    if row['PapJRefYear'] >= 2013:
         papSim.D_GT2013[row_index] = 1
     else:
         papSim.D_GT2013[row_index] = 0
 
 papSim['D_GT2014'] = int()
 for row_index, row in papSim.iterrows():
-    if row['PapYear'] >= 2014:
+    if row['PapJRefYear'] >= 2014:
         papSim.D_GT2014[row_index] = 1
     else:
         papSim.D_GT2014[row_index] = 0
 
 papSim['RelYear'] = int()
 for row_index,row in papSim.iterrows():
-    papSim.RelYear[row_index] = row['PapYear'] - row['TopPaperYear']
+    papSim.RelYear[row_index] = row['PapJRefYear'] - row['TopPaperYear']
 
 # <codecell>
 
@@ -1425,7 +1438,7 @@ def doMeanSimReg(x1,y,dumYear,title,papYear,df):
     probF = round(results.f_pvalue,5)
     dfRes = round(results.df_resid,5)
 
-    row = pd.Series([title,year,dumYear,relDumYear,CCoef,CPVal,DCoef,DPVal,r2,probF,dfRes],index=['Title', 'Year', 'DumYear','RelDumYear','CCoef','CPVal','DCoef','DPVal','R2','Pfstat','DFResid'])
+    row = pd.Series([title,year,dumYear,relDumYear,CCoef,CPVal,DCoef,DPVal,r2,probF,dfRes],index=['Title','Year','DumYear','RelDumYear','CCoef','CPVal','DCoef','DPVal','R2','Pfstat','DFResid'])
     df = df.append(row, ignore_index=True)
     # Changing dtypes back from object to floats
     df[['DumYear','RelDumYear','CCoef','CPVal','DCoef','DPVal','R2','Pfstat','DFResid']] = df[['DumYear','RelDumYear','CCoef','CPVal','DCoef','DPVal','R2','Pfstat','DFResid']].apply(np.float32)
@@ -1433,29 +1446,29 @@ def doMeanSimReg(x1,y,dumYear,title,papYear,df):
 
 for paper in papers:
     print paper
-    y = list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).Similarity.mean())
+    y = list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).Similarity.mean())
     papYear = papSim[papSim.TopPaperTitle==paper].TopPaperYear.mean()
     
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT1995.mean()),y,1995,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT1996.mean()),y,1996,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT1997.mean()),y,1997,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT1998.mean()),y,1998,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT1999.mean()),y,1999,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2000.mean()),y,2000,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2001.mean()),y,2001,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2002.mean()),y,2002,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2003.mean()),y,2003,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2004.mean()),y,2004,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2005.mean()),y,2005,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2006.mean()),y,2006,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2007.mean()),y,2007,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2008.mean()),y,2008,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2009.mean()),y,2009,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2010.mean()),y,2010,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2011.mean()),y,2011,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2012.mean()),y,2012,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2013.mean()),y,2013,paper,papYear,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2014.mean()),y,2014,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT1995.mean()),y,1995,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT1996.mean()),y,1996,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT1997.mean()),y,1997,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT1998.mean()),y,1998,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT1999.mean()),y,1999,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2000.mean()),y,2000,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2001.mean()),y,2001,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2002.mean()),y,2002,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2003.mean()),y,2003,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2004.mean()),y,2004,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2005.mean()),y,2005,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2006.mean()),y,2006,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2007.mean()),y,2007,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2008.mean()),y,2008,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2009.mean()),y,2009,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2010.mean()),y,2010,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2011.mean()),y,2011,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2012.mean()),y,2012,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2013.mean()),y,2013,paper,papYear,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2014.mean()),y,2014,paper,papYear,simRegs)
 
 simRegs.to_csv('pap_simRegRaw.csv')
 
@@ -1635,9 +1648,9 @@ simRegs[['DumYear','RelDumYear','CCoef','CPVal','DCoef','DPVal','R2','Pfstat','D
 def doMeanSimReg(x1,dumYear,title,df):
     # Find top %x by similarity
     y = []
-    for yr in range(papSim.PapYear.min(),papSim.PapYear.max()+1):
-        quantCut = papSim[(papSim.TopPaperTitle==paper)&(papSim.PapYear==yr)].Similarity.quantile(.90)
-        y.append(papSim[(papSim.TopPaperTitle==paper)&(papSim.PapYear==yr)&(papSim.Similarity>=quantCut)].Similarity.mean())
+    for yr in range(papSim.PapJRefYear.min(),papSim.PapJRefYear.max()+1):
+        quantCut = papSim[(papSim.TopPaperTitle==paper)&(papSim.PapJRefYear==yr)].Similarity.quantile(.90)
+        y.append(papSim[(papSim.TopPaperTitle==paper)&(papSim.PapJRefYear==yr)&(papSim.Similarity>=quantCut)].Similarity.mean())
     
     X = sm.add_constant(zip(x1), prepend=True)
     results = sm.OLS(y, X).fit()
@@ -1660,26 +1673,26 @@ def doMeanSimReg(x1,dumYear,title,df):
 
 for paper in papers:
     print paper
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT1995.mean()),1995,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT1996.mean()),1996,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT1997.mean()),1997,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT1998.mean()),1998,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT1999.mean()),1999,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2000.mean()),2000,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2001.mean()),2001,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2002.mean()),2002,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2003.mean()),2003,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2004.mean()),2004,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2005.mean()),2005,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2006.mean()),2006,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2007.mean()),2007,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2008.mean()),2008,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2009.mean()),2009,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2010.mean()),2010,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2011.mean()),2011,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2012.mean()),2012,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2013.mean()),2013,paper,simRegs)
-    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapYear']).D_GT2014.mean()),2014,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT1995.mean()),1995,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT1996.mean()),1996,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT1997.mean()),1997,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT1998.mean()),1998,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT1999.mean()),1999,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2000.mean()),2000,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2001.mean()),2001,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2002.mean()),2002,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2003.mean()),2003,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2004.mean()),2004,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2005.mean()),2005,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2006.mean()),2006,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2007.mean()),2007,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2008.mean()),2008,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2009.mean()),2009,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2010.mean()),2010,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2011.mean()),2011,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2012.mean()),2012,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2013.mean()),2013,paper,simRegs)
+    simRegs = doMeanSimReg(list(papSim[papSim.TopPaperTitle==paper].groupby(['PapJRefYear']).D_GT2014.mean()),2014,paper,simRegs)
 
 print simRegs
 
