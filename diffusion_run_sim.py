@@ -389,93 +389,106 @@ def multi_runSim(objDF,smpDF,simDFCols,objVars,smpVars,method,out_q):
     out_q.put(simDF)
         
 def main():
+    # User input of processes to run
+    params = {'doBioSim':'null', 'doAISim':'null'}
+    for p in params.keys():
+        print 'would you like to {0} (y/n)? '.format(p),
+        answer = 'null'
+        while answer not in ['y','n']:
+            answer = raw_input()
+            if answer in ['y','n']:
+                params[p] = answer
+            else:
+                print 'invalid input'
     
-    ## Process Biotech
-    # load biotech data
-    bioPats = pd.DataFrame.from_csv(difPath+'/bio_patents.csv')
-    bioAbs = pd.DataFrame.from_csv(difPath+'/bio_abstracts.csv')
-    # reindex loaded data
-    bioPats.index = np.arange(1,len(bioPats)+1)
-    bioAbs.index = np.arange(1,len(bioAbs)+1)
-    
-    simDFCols = ['PatNum','PatYear','PapTitle','PapAuthors','PapJRef','PapYear','Similarity']
-    objVars = ['patent','gyear']
-    smpVars = ['Title','Authors','JRef','Year']
-    
-    ## calculate biotech similarity
-    print '\n', 'Start Processing Biotech' 
-    # split patents and kick off multiprocesses
-    lenBioPats = range(0,len(bioPats)+1)
-    splitSlices = splitterSlices(lenBioPats,5)
-    out_q = multiprocessing.Queue()
-    
-    # start processes to calculate similarity
-    processes = []
-    for i in range(5):
-        w = multiprocessing.Process(name='wkr_bio_{0}'.format(i), target=multi_runSim, args=(bioPats[splitSlices[i][0]:splitSlices[i][1]],bioAbs,simDFCols,objVars,smpVars,'lcs',out_q))
-        processes.append(w)
-        w.start()
-        time.sleep(2)
-    
-    # gather and join output of processes
-    finalSimDF = pd.DataFrame(columns=simDFCols)
-    for i in range(len(processes)):
-        finalSimDF = pd.concat([finalSimDF,out_q.get()])
-    
-    # reindex and store joined output 
-    finalSimDF.index = np.arange(1,len(finalSimDF)+1)
-    finalSimDF.to_csv(difPath+'/bio_similarity.csv')
-    
-    # join processes
-    for p in processes:
-        p.join()
-    print 'Workers:',processes,'finished and joined'
-    # clear output queue
-    out_q = ''
-    
-    ## Process AI
-    # load ai data
-    aiPats = pd.DataFrame.from_csv(difPath+'/ai_patents.csv')
-    aiAbs = pd.DataFrame.from_csv(difPath+'/ai_abstracts.csv')
-    # reindex loaded data
-    aiPats.index = np.arange(1,len(aiPats)+1)
-    aiAbs.index = np.arange(1,len(aiAbs)+1)
-    # create year variable for abstract data
-    aiAbs['SubmitDate'] = pd.to_datetime(aiAbs['SubmitDate'])
-    aiAbs['Year'] = pd.DatetimeIndex(aiAbs['SubmitDate']).year
-    
-    simDFCols = ['PatNum','PatYear','PapTitle','PapAuthors','PapJRef','PapYear','Similarity']
-    objVars = ['patent','gyear']
-    smpVars = ['Title','Authors','JRef','Year']
-    
-    ## calculate ai similarity
-    print '\n', 'Start Processing AI' 
-    # split patents and kick off multiprocesses
-    lenAIPats = range(0,len(aiPats)+1)
-    splitSlices = splitterSlices(lenAIPats,5)
-    out_q = multiprocessing.Queue()
-    
-    # start processes to calculate similarity
-    processes = []
-    for i in range(5):
-        w = multiprocessing.Process(name='wkr_ai_{0}'.format(i), target=multi_runSim, args=(aiPats[splitSlices[i][0]:splitSlices[i][1]],aiAbs,simDFCols,objVars,smpVars,'lcs',out_q))
-        processes.append(w)
-        w.start()
-        time.sleep(2)
-    
-    # gather and join output of processes
-    finalSimDF = pd.DataFrame(columns=simDFCols)
-    for i in range(len(processes)):
-        finalSimDF = pd.concat([finalSimDF,out_q.get()])
-    
-    # reindex and store joined output
-    finalSimDF.index = np.arange(1,len(finalSimDF)+1)    
-    finalSimDF.to_csv(difPath+'/ai_similarity.csv')
-    
-    # join processes
-    for p in processes:
-        p.join()
-    print 'Workers:',processes,'finished and joined'
+    if params['doBioSim']=='y':
+        ## Process Biotech
+        # load biotech data
+        bioPats = pd.DataFrame.from_csv(difPath+'/bio_patents.csv')
+        bioAbs = pd.DataFrame.from_csv(difPath+'/bio_abstracts.csv')
+        # reindex loaded data
+        bioPats.index = np.arange(1,len(bioPats)+1)
+        bioAbs.index = np.arange(1,len(bioAbs)+1)
+        
+        simDFCols = ['PatNum','PatYear','PapTitle','PapAuthors','PapJRef','PapYear','Similarity']
+        objVars = ['patent','gyear']
+        smpVars = ['Title','Authors','JRef','Year']
+        
+        ## calculate biotech similarity
+        print '\n', 'Start Processing Biotech' 
+        # split patents and kick off multiprocesses
+        lenBioPats = range(0,len(bioPats)+1)
+        splitSlices = splitterSlices(lenBioPats,5)
+        out_q = multiprocessing.Queue()
+        
+        # start processes to calculate similarity
+        processes = []
+        for i in range(5):
+            w = multiprocessing.Process(name='wkr_bio_{0}'.format(i), target=multi_runSim, args=(bioPats[splitSlices[i][0]:splitSlices[i][1]],bioAbs,simDFCols,objVars,smpVars,'lcs',out_q))
+            processes.append(w)
+            w.start()
+            time.sleep(2)
+        
+        # gather and join output of processes
+        finalSimDF = pd.DataFrame(columns=simDFCols)
+        for i in range(len(processes)):
+            finalSimDF = pd.concat([finalSimDF,out_q.get()])
+        
+        # reindex and store joined output 
+        finalSimDF.index = np.arange(1,len(finalSimDF)+1)
+        finalSimDF.to_csv(difPath+'/bio_similarity.csv')
+        
+        # join processes
+        for p in processes:
+            p.join()
+        print 'Workers:',processes,'finished and joined'
+        # clear output queue
+        out_q = ''
+
+    if params['doAISim']=='y':
+        ## Process AI
+        # load ai data
+        aiPats = pd.DataFrame.from_csv(difPath+'/ai_patents.csv')
+        aiAbs = pd.DataFrame.from_csv(difPath+'/ai_abstracts.csv')
+        # reindex loaded data
+        aiPats.index = np.arange(1,len(aiPats)+1)
+        aiAbs.index = np.arange(1,len(aiAbs)+1)
+        # create year variable for abstract data
+        aiAbs['SubmitDate'] = pd.to_datetime(aiAbs['SubmitDate'])
+        aiAbs['Year'] = pd.DatetimeIndex(aiAbs['SubmitDate']).year
+        
+        simDFCols = ['PatNum','PatYear','PapTitle','PapAuthors','PapJRef','PapYear','Similarity']
+        objVars = ['patent','gyear']
+        smpVars = ['Title','Authors','JRef','Year']
+        
+        ## calculate ai similarity
+        print '\n', 'Start Processing AI' 
+        # split patents and kick off multiprocesses
+        lenAIPats = range(0,len(aiPats)+1)
+        splitSlices = splitterSlices(lenAIPats,5)
+        out_q = multiprocessing.Queue()
+        
+        # start processes to calculate similarity
+        processes = []
+        for i in range(5):
+            w = multiprocessing.Process(name='wkr_ai_{0}'.format(i), target=multi_runSim, args=(aiPats[splitSlices[i][0]:splitSlices[i][1]],aiAbs,simDFCols,objVars,smpVars,'lcs',out_q))
+            processes.append(w)
+            w.start()
+            time.sleep(2)
+        
+        # gather and join output of processes
+        finalSimDF = pd.DataFrame(columns=simDFCols)
+        for i in range(len(processes)):
+            finalSimDF = pd.concat([finalSimDF,out_q.get()])
+        
+        # reindex and store joined output
+        finalSimDF.index = np.arange(1,len(finalSimDF)+1)    
+        finalSimDF.to_csv(difPath+'/ai_similarity.csv')
+        
+        # join processes
+        for p in processes:
+            p.join()
+        print 'Workers:',processes,'finished and joined'
     
 if __name__=="__main__":
     main()

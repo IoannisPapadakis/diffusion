@@ -6,8 +6,11 @@ Version 1.0
 Written in Python 2.7
 
 This python program contains the methods used to scrape academic abstracts from the 
-web. These abstracts are scraped from Nature Biotechnology and arXiv. These methods 
-were used in the paper The Knowledge Diffusion Effects of Patents.
+web and create a dataset of patent abstracts. These abstracts are scraped from 
+Nature Biotechnology and arXiv. The patents are put together using the NBER patent 
+database and yearly full text patent files, .json dictionaries with abstracts. 
+
+These methods were used in the paper The Knowledge Diffusion Effects of Patents.
 
 """
 ## IMPORT LIBRARIES
@@ -447,39 +450,54 @@ def loadPatentAbstracts(df):
 
 
 def main():
-    ## Scrape biotech, AI, and machine learning abstracts
-    # Storing Biotech Abstracts
-    #dfBio = doNatureScrape('bio_abstracts.csv')
+    # User input of processes to run
+    params = {'doBioScrape':'null', 'doarXivScrape':'null', 'doPatents':'null'}
+    for p in params.keys():
+        print 'would you like to {0} (y/n)? '.format(p),
+        answer = 'null'
+        while answer not in ['y','n']:
+            answer = raw_input()
+            if answer in ['y','n']:
+                params[p] = answer
+            else:
+                print 'invalid input'
     
-    # Scrape arXiv for artificial intelligence and machine learning abstracts
-    #dfAI = scrapeARXIV(100, 0, 'cs.ai', True)
-    #dfAI.to_csv(difPath+'/ai_abstracts.csv')
-    #dfLG = scrapeARXIV(100, 0, 'cs.lg', True)
-    #dfLG.to_csv(difPath+'/lg_abstracts.csv')
-    #dfML = scrapeARXIV(100, 0, 'stat.ml', True)
-    #dfML.to_csv(difPath+'/ml_abstracts.csv')
-    #dfAI = pd.concat([dfAI,dfLG,dfML])
-    # reindex before storing
-    #dfAI.index = arrange(1,len(dfAI)+1)
-    #dfAI.to_csv(difPath+'/aiml_abstracts.csv')
+    if params['doBioScrape']=='y': 
+        ## Scrape biotech, AI, and machine learning abstracts
+        # Storing Biotech Abstracts
+        dfBio = doNatureScrape('bio_abstracts.csv')
     
-    ## Load NBER patent data
-    bioPats, aiPats = getPats()
-    # find top 1% of cited bio patents for a set of years
-    bioPatsTop = citeQuantCut(bioPats,1999,.99)
-    bioPatsTop = pd.concat([bioPatsTop,citeQuantCut(bioPats,1998,.99)])
-    bioPatsTop = pd.concat([bioPatsTop,citeQuantCut(bioPats,1997,.99)])
-    bioPatsTop = pd.concat([bioPatsTop,citeQuantCut(bioPats,1996,.99)])
-    # find top 10% of cited ai patents for a set of years
-    aiPatsTop = citeQuantCut(aiPats,1999,.90)
-    aiPatsTop = pd.concat([aiPatsTop,citeQuantCut(aiPats,1998,.90)])
-    aiPatsTop = pd.concat([aiPatsTop,citeQuantCut(aiPats,1997,.90)])
-    aiPatsTop = pd.concat([aiPatsTop,citeQuantCut(aiPats,1996,.90)]) 
+    if params['doarXivScrape']=='y': 
+        # Scrape arXiv for artificial intelligence and machine learning abstracts
+        dfAI = scrapeARXIV(100, 0, 'cs.ai', True)
+        dfAI.to_csv(difPath+'/aia_abstracts.csv')
+        dfLG = scrapeARXIV(100, 0, 'cs.lg', True)
+        dfLG.to_csv(difPath+'/lg_abstracts.csv')
+        dfML = scrapeARXIV(100, 0, 'stat.ml', True)
+        dfML.to_csv(difPath+'/ml_abstracts.csv')
+        dfAI = pd.concat([dfAI,dfLG,dfML])
+        # reindex before storing
+        dfAI.index = arrange(1,len(dfAI)+1)
+        dfAI.to_csv(difPath+'/ai_abstracts.csv')
     
-    bioPatsTop = loadPatentAbstracts(bioPatsTop)
-    bioPatsTop.to_csv(difPath+'/bio_patents.csv',encoding='utf-8')
-    aiPatsTop = loadPatentAbstracts(aiPatsTop)
-    aiPatsTop.to_csv(difPath+'/ai_patents.csv',encoding='utf-8')
+    if params['doPatents']=='y': 
+        ## Load NBER patent data
+        bioPats, aiPats = getPats()
+        # find top 1% of cited bio patents for a set of years
+        bioPatsTop = citeQuantCut(bioPats,1999,.99)
+        bioPatsTop = pd.concat([bioPatsTop,citeQuantCut(bioPats,1998,.99)])
+        bioPatsTop = pd.concat([bioPatsTop,citeQuantCut(bioPats,1997,.99)])
+        bioPatsTop = pd.concat([bioPatsTop,citeQuantCut(bioPats,1996,.99)])
+        # find top 10% of cited ai patents for a set of years
+        aiPatsTop = citeQuantCut(aiPats,1999,.90)
+        aiPatsTop = pd.concat([aiPatsTop,citeQuantCut(aiPats,1998,.90)])
+        aiPatsTop = pd.concat([aiPatsTop,citeQuantCut(aiPats,1997,.90)])
+        aiPatsTop = pd.concat([aiPatsTop,citeQuantCut(aiPats,1996,.90)]) 
+        
+        bioPatsTop = loadPatentAbstracts(bioPatsTop)
+        bioPatsTop.to_csv(difPath+'/bio_patents.csv',encoding='utf-8')
+        aiPatsTop = loadPatentAbstracts(aiPatsTop)
+        aiPatsTop.to_csv(difPath+'/ai_patents.csv',encoding='utf-8')
 
     
 if __name__=="__main__":
