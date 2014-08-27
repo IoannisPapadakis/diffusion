@@ -5,13 +5,13 @@ August 25, 2014
 Version 1.0
 Written in Python 2.7
 
-This python program
+This python program calculates the syntactic similarity between biotech and AI abstracts and biotech and AI patents. 
 
 """
-myModulesPath = 'C:\\Users\\ngold\\Documents\\Python Library'
+myModulesPath = 'C:\\Users\\ngold\\Documents\\Python Library\\GitHub\\generic_methods'
 ## IMPORT LIBRARIES
 import sys
-sys.path.append('C:\\Users\\ngold\\Documents\\Python Library')
+sys.path.append(myModulesPath)
 import urllib
 import urllib2
 import re
