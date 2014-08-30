@@ -1,11 +1,11 @@
 """
-
+Perform diffusion analysis
 Nathan Goldschlag
 August 25, 2014
 Version 1.0
 Written in Python 2.7
 
-This python program 
+This python program prepares the csv files for plotting and runs similarity regressions.
 
 """
 ## IMPORT LIBRARIES
