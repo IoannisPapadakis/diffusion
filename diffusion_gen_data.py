@@ -21,6 +21,7 @@ import time
 import pandas as pd
 from unicodedata import normalize
 import json
+import numpy as np
 
 absPath = 'd:/patent_data/abstracts'
 nberPath = 'd:/patent_data/nber_patent_data'
@@ -289,6 +290,8 @@ def doNatureScrape(csvName):
         else:
             row['Authors'] = normalize('NFKD', unicode(row['Authors'])).encode('ASCII', 'ignore')
         row['JRef'] = normalize('NFKD', unicode(row['JRef'])).encode('ASCII', 'ignore')
+    # drop any duplicates
+    df2 = df2.drop_duplicates('JRef')
     df2.to_csv(csvName)
     return df2
 
@@ -326,6 +329,7 @@ def scrapeARXIV(maxRes,upperLimit,category, scrapeAll):
     
     # For each starting point make the call and scrape data from each entry returned
     for start in starts:
+        print start,'of',total
         if start + maxRes > total:
             maxRes = (upLim - start)-1
         url = 'http://export.arxiv.org/api/query?search_query=cat:{0}&start={1}&max_results={2}&sortBy=submittedDate&sortOrder=ascending'.format(category,start,maxRes)
@@ -348,7 +352,7 @@ def scrapeARXIV(maxRes,upperLimit,category, scrapeAll):
                 # Run on titles that do not throw unicode error due to special characters
                 title = str(ent.title.string)
             except:
-                # Normalize titles with sepcial characters
+                # Normalize titles with special characters
                 title = normalize('NFKD', ent.title.string).encode('ASCII', 'ignore')
             # Some entries have no journal reference and submission dates
             jRef = ent.findAll('arxiv:journal_ref')
@@ -466,19 +470,91 @@ def main():
         ## Scrape biotech, AI, and machine learning abstracts
         # Storing Biotech Abstracts
         dfBio = doNatureScrape('bio_abstracts.csv')
+        
+        # post-processing
+        # reindex before processing
+        dfBio.index = np.arange(1,len(dfBio)+1)
+        
+        # extract year from journal ref
+        findYear = re.compile('\(\d\d\d\d\)')
+        dfBio['JRefYear'] = int()
+        for row_index, row in dfBio.iterrows():
+            papJRef = row['JRef']
+            find = re.search(findYear, papJRef)
+            dfBio.JRefYear[row_index] = int(find.group()[1:5])
+
+        #drop records with duplicate journal refs
+        dfBio = dfBio.drop_duplicates(['JRef'])
+        
+        # drop records outside the range of study, 1983-2013
+        dfBio = dfBio[(dfBio.JRefYear>=1983)&(dfBio.JRefYear<=2013)]
+
+        # reindex before storing
+        dfBio.index = np.arange(1,len(dfBio)+1)
+                
+        dfBio.to_csv(difPath+'/bio_abstracts.csv')
+        
     
     if params['doarXivScrape']=='y': 
         # Scrape arXiv for artificial intelligence and machine learning abstracts
+        print 'Scrape arXiv AI'
         dfAI = scrapeARXIV(100, 0, 'cs.ai', True)
-        dfAI.to_csv(difPath+'/aia_abstracts.csv')
+        dfAI.to_csv(difPath+'/arxiv_ai_abstracts.csv')
+        print 'Scrape arXiv LG'
         dfLG = scrapeARXIV(100, 0, 'cs.lg', True)
-        dfLG.to_csv(difPath+'/lg_abstracts.csv')
+        dfLG.to_csv(difPath+'/arxiv_lg_abstracts.csv')
+        print 'Scrape arXiv ML'
         dfML = scrapeARXIV(100, 0, 'stat.ml', True)
-        dfML.to_csv(difPath+'/ml_abstracts.csv')
-        dfAI = pd.concat([dfAI,dfLG,dfML])
+        dfML.to_csv(difPath+'/arxiv_ml_abstracts.csv')
+        
+        # combine the abstract dataframes
+        dfAIML = pd.concat([dfAI,dfLG,dfML])
+        
+        # post-processing
+        # reindex before creating new vars
+        dfAIML.index = np.arange(1,len(dfAIML)+1)
+        
+        # extract year from arXiv submit date 
+        dfAIML['SubmitYear'] = int()
+        for row_index, row in dfAIML.iterrows():
+            dfAIML.SubmitYear[row_index] = row['SubmitDate'][0:4]
+        
+        # extract year  from JRef 
+        findYear1 = re.compile('\(\d\d\d\d\)')
+        findYear2 = re.compile('(?<!\d\d\d\d\-)\d\d\d\d(?!\-\d\d\d\d)')
+        dfAIML['JRefYear'] = int()
+        for row_index, row in dfAIML.iterrows():
+            year = int()
+            papJRef = row['JRef']
+            find1 = re.findall(findYear1,papJRef)
+            if find1:
+                yrs = []
+                for i in find1:
+                    yrs.append(i[1:5])
+                for i in yrs:
+                    if int(i)<2015 and int(i)>1960:
+                        year = int(i)
+                        dfAIML.JRefYear[row_index] = int(year)
+            find2 = re.findall(findYear2,papJRef)
+            if find2 and not year:
+                for i in find2:
+                    if int(i)<2015 and int(i)>1960:
+                        year = int(i)
+                        dfAIML.JRefYear[row_index] = int(year)
+        
+        # Drop records where the year could not be extracted from the JRef
+        dfAIML = dfAIML[dfAIML.JRefYear!=0]
+        
+        # drop duplicate abstracts (there may still be duplicate titles but with diff abstracts)
+        dfAIML = dfAIML.drop_duplicates(['Abstract'])
+        
+        # drop records outside the range of study, 1993-2013
+        dfAIML = dfAIML[(dfAIML.JRefYear>=1993)&(dfAIML.JRefYear<=2013)]
+        
         # reindex before storing
-        dfAI.index = arrange(1,len(dfAI)+1)
-        dfAI.to_csv(difPath+'/ai_abstracts.csv')
+        dfAIML.index = np.arange(1,len(dfAIML)+1)
+        
+        dfAIML.to_csv(difPath+'/aiml_abstracts.csv')
     
     if params['doPatents']=='y': 
         ## Load NBER patent data

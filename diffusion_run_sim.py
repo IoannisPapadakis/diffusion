@@ -276,60 +276,6 @@ def simCosine(str1,str2):
     else:
         return float(numerator) / denominator
 
-def runSim(objDF,smpDF,simDFCols,objVars,smpVars,method):
-    """
-    Runs similarity regressions and returns a dataframe with the similarity, calculated using either the 
-    longest common subsequence methods or the cosine similarity, of each abstract in the objDF dataframe 
-    to each abstract in the smpDF dataframe
-    Parameters:
-    objDF = dataframe of focus abstracts
-    smpDF = dataframe of abstracts against which similarity will be calculated
-    simDFCols = list of column names to be used in the similarity dataframe returned
-    objVars = list of column names on the objDF dataframe to be returned on the similarity dataframe
-    smpVars = list of column names on the smpDF dataframe to be returend on the similarity dataframe
-    method = method for calculating similarity, lcs or cosine
-    """
-    simDF = pd.DataFrame(columns=simDFCols)
-    
-    for obj_ind,obj_row in objDF.iterrows():
-        if obj_ind%10==0:
-            print obj_ind
-        objAbs = obj_row['patent_abstract']
-        # Build dictionary of objVars with values from the objDF
-        objVarDict = {}
-        for i in range(len(objVars)):
-            objVarDict[i] = obj_row[objVars[i]]
-        
-        for smp_ind,smp_row in smpDF.iterrows():
-            if method == 'lcs':
-                if smp_ind%1000 == 0:
-                    print smp_ind
-            smpAbs = smp_row['Abstract']
-            # Build dictionary of smpVars with values from the smpDF
-            smpVarDict = {}
-            for i in range(len(smpVars)):
-                smpVarDict[i] = smp_row[smpVars[i]]
-            
-            if method=='lcs':
-                sim = simLCS(objAbs,smpAbs)
-            elif method =='cosine':
-                sim = simCosine(objAbs,smpAbs)
-            else:
-                print "No method"
-                break
-            # Build a list of variable values to be appended to the simDF, pulled from both dictionaries
-            rowVars = []
-            for varKey in range(len(objVars)):
-                rowVars.append(objVarDict[varKey])            
-            for varKey in range(len(smpVars)):
-                rowVars.append(smpVarDict[varKey])
-            rowVars.append(sim)
-            # Write the new record to the simDF
-            row = pd.Series(rowVars,index=simDFCols)
-            simDF = simDF.append(row,ignore_index=True)
-    
-    return simDF
-
 def multi_runSim(objDF,smpDF,simDFCols,objVars,smpVars,method,out_q):
     """
     Runs similarity regressions and returns a dataframe with the similarity, calculated using either the 
@@ -345,16 +291,30 @@ def multi_runSim(objDF,smpDF,simDFCols,objVars,smpVars,method,out_q):
     """
     t0 = time.clock()
     print 'Starting', multiprocessing.current_process().name, time.clock() - t0, '\n'
-    # reindex so that percentage printouts are correct
-    objDF.index = np.arange(1,len(objDF)+1)
-    simDF = pd.DataFrame(columns=simDFCols)
-    progSplit = splitter(list(objDF.index),10)
+    simDF = pd.DataFrame(columns=simDFCols)    
+    
+    # when running test case len(objDF)==1
+    # define flag for test case rather than check length of objDF every iteration, only setting up progress reporting if not in test case
+    if len(objDF)>1: 
+        testCase = False
+    else:
+        testCase = True
+    if testCase==False:
+        # reindex so that percentage printouts are correct
+        objDF.index = np.arange(1,len(objDF)+1)
+        progSplit = splitter(list(objDF.index),10)
+    
     for obj_ind,obj_row in objDF.iterrows():
-        if obj_ind in [i[-1] for i in progSplit]:
-            prct = round(obj_ind/float(len(objDF)),3)
-            prct = str(prct*100)[:4 + 2]
-            print '{0} is {1}% complete'.format(multiprocessing.current_process().name, prct)
-        objAbs = obj_row['patent_abstract']
+        # only report progress if not in test case
+        if testCase==False:
+            if obj_ind in [i[-1] for i in progSplit]:
+                prct = round(obj_ind/float(len(objDF)),3)
+                prct = str(prct*100)[:4 + 2]
+                print '{0} is {1}% complete'.format(multiprocessing.current_process().name, prct)
+        try:
+            objAbs = obj_row['patent_abstract']
+        except:
+            objAbs = obj_row['Abstract']
         # Build dictionary of objVars with values from the objDF
         objVarDict = {}
         for i in range(len(objVars)):
@@ -390,7 +350,7 @@ def multi_runSim(objDF,smpDF,simDFCols,objVars,smpVars,method,out_q):
         
 def main():
     # User input of processes to run
-    params = {'doBioSim':'null', 'doAISim':'null'}
+    params = {'doBioSim':'null', 'doAISim':'null', 'runSimTestCase':'null'}
     for p in params.keys():
         print 'would you like to {0} (y/n)? '.format(p),
         answer = 'null'
@@ -400,6 +360,49 @@ def main():
                 params[p] = answer
             else:
                 print 'invalid input'
+    
+    if params['runSimTestCase']=='y':
+        ## process the similarity test case, highly cited machine learning paper
+        # test case similarity dataframe is different from the two normal patent-to-paper similarity cases
+        # in the test case similarity case we have TC paper-to-paper similarity, measuring similarity of TC paper to all AI papers
+        aiAbs = pd.DataFrame.from_csv(difPath+'/ai_abstracts.csv')
+        testAbs = pd.DataFrame.from_csv(difPath+'/simTC_abstracts.csv')
+        
+        simDFCols = ['PapTitleTC','PapAuthorsTC','PapJRefTC','PapYearTC','PapTitle','PapAuthors','PapJRef','PapYear','Similarity']
+        objVars = ['Title','Authors','JRef','JRefYear']
+        smpVars = ['Title','Authors','JRef','JRefYear']
+        
+        ## calculate test case similarity
+        print '\n','Start Processing Test Case'
+        
+        # split patents and kick off multiprocesses
+        lenAIPaps = range(0,len(aiAbs)+1)
+        splitSlices = splitterSlices(lenAIPaps,5)
+        out_q = multiprocessing.Queue()
+        
+        # start processes to calculate similarity
+        processes = []
+        for i in range(5):
+            w = multiprocessing.Process(name='wkr_testCase_{0}'.format(i), target=multi_runSim, args=(testAbs,aiAbs[splitSlices[i][0]:splitSlices[i][1]],simDFCols,objVars,smpVars,'lcs',out_q))
+            processes.append(w)
+            w.start()
+            time.sleep(2)
+        
+        # gather and join output of processes
+        finalSimDF = pd.DataFrame(columns=simDFCols)
+        for i in range(len(processes)):
+            finalSimDF = pd.concat([finalSimDF,out_q.get()])
+        
+        # reindex and store joined output 
+        finalSimDF.index = np.arange(1,len(finalSimDF)+1)
+        finalSimDF.to_csv(difPath+'/simTC_similarity.csv')
+        
+        # join processes
+        for p in processes:
+            p.join()
+        print 'Workers:',processes,'finished and joined'
+        # clear output queue
+        out_q = ''
     
     if params['doBioSim']=='y':
         ## Process Biotech
@@ -412,7 +415,7 @@ def main():
         
         simDFCols = ['PatNum','PatYear','PapTitle','PapAuthors','PapJRef','PapYear','Similarity']
         objVars = ['patent','gyear']
-        smpVars = ['Title','Authors','JRef','Year']
+        smpVars = ['Title','Authors','JRef','JRefYear']
         
         ## calculate biotech similarity
         print '\n', 'Start Processing Biotech' 
@@ -448,7 +451,7 @@ def main():
     if params['doAISim']=='y':
         ## Process AI
         # load ai data
-        aiPats = pd.DataFrame.from_csv(difPath+'/ai_patents.csv')
+        aiPats = pd.DataFrame.from_csv(difPath+'/aiml_patents.csv')
         aiAbs = pd.DataFrame.from_csv(difPath+'/ai_abstracts.csv')
         # reindex loaded data
         aiPats.index = np.arange(1,len(aiPats)+1)
@@ -459,7 +462,7 @@ def main():
         
         simDFCols = ['PatNum','PatYear','PapTitle','PapAuthors','PapJRef','PapYear','Similarity']
         objVars = ['patent','gyear']
-        smpVars = ['Title','Authors','JRef','Year']
+        smpVars = ['Title','Authors','JRef','JRefYear']
         
         ## calculate ai similarity
         print '\n', 'Start Processing AI' 
